@@ -53,10 +53,20 @@ def predict_toxicity(ingredients):
 
     probs = ensemble.predict_proba(X)[:,1]  # probability of toxic class
     for name, p in zip(names, probs):
+        score = float(p)
+        if score >= 0.75:
+            label = "HIGH RISK"
+        elif score >= 0.50:
+            label = "MODERATE RISK"
+        elif score >= 0.25:
+            label = "LOW RISK"
+        else:
+            label = "SAFE"
+
         results.append({
             "ingredient": name,
-            "score": float(p),
-            "label": "TOXIC" if p >= 0.6 else "SAFE"
+            "score": score,
+            "label": label
         })
 
     return results
