@@ -11,9 +11,6 @@ node_modules
 dist
 dist-ssr
 *.local
-verify_changes.py
-verify_empty.py
-verify_search.py
 
 # Editor directories and files
 .vscode/*
