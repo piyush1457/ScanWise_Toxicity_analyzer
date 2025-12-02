@@ -23,7 +23,7 @@ const Autocomplete = ({ value, onChange, onSelect, placeholder, label, name }) =
         const fetchSuggestions = async () => {
             if (value.length > 2) {
                 try {
-                    const response = await axios.get(`http://localhost:8001/search-products?q=${value}`);
+                    const response = await axios.get(`http://localhost:8000/search-products?q=${encodeURIComponent(value)}`);
                     setSuggestions(response.data);
                     setShowSuggestions(true);
                 } catch (error) {

@@ -8,3 +8,7 @@ lightgbm
 pandas
 numpy
 tqdm
+firebase-admin
+google-generativeai
+python-multipart
+python-dotenv
