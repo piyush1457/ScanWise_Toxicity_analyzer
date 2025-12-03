@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Scan, Type, Search, Heart } from 'lucide-react';
+import { Scan, Type, Search, Heart, Share2, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -9,8 +9,10 @@ import Badge from '../components/Badge';
 import Autocomplete from '../components/Autocomplete';
 import OCRUploader from '../components/OCRUploader';
 import BarcodeScanner from '../components/BarcodeScanner';
+import IngredientModal from '../components/IngredientModal';
+import ShareCard from '../components/ShareCard';
 
-export default function Home() {
+export default function Dashboard() {
     const { currentUser } = useAuth();
     const [formData, setFormData] = useState({
         product_name: '',
@@ -19,13 +21,30 @@ export default function Home() {
         usage_frequency: 'Daily',
         amount_applied: 'Normal',
         ingredients_list: '',
-        barcode: '' // Store selected product ID
+        barcode: '', // Store selected product ID
+        category: ''
     });
     const [mode, setMode] = useState('search'); // 'search', 'manual', 'ocr', 'barcode'
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [favMessage, setFavMessage] = useState("");
+    const [selectedIngredient, setSelectedIngredient] = useState(null);
+    const [alternatives, setAlternatives] = useState([]);
+    const [showShareCard, setShowShareCard] = useState(false);
+
+    useEffect(() => {
+        if (result && result.product_toxicity_score > 0.3 && result.category) {
+            axios.post('http://localhost:8000/recommend-alternatives', {
+                category: result.category,
+                current_score: result.product_toxicity_score
+            })
+                .then(res => setAlternatives(res.data))
+                .catch(err => console.error("Failed to fetch alternatives", err));
+        } else {
+            setAlternatives([]);
+        }
+    }, [result]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -46,7 +65,8 @@ export default function Home() {
         setFormData(prev => ({
             ...prev,
             ingredients_list: ingredientsText,
-            product_name: data.product_name || prev.product_name // Pre-fill name if available
+            product_name: data.product_name || prev.product_name, // Pre-fill name if available
+            category: data.category || ''
         }));
         setMode('manual'); // Switch to manual to show the filled data
     };
@@ -358,6 +378,12 @@ export default function Home() {
                                             {favMessage && <span className="text-sm text-emerald-400">{favMessage}</span>}
                                         </div>
                                     )}
+
+                                    <div className="mt-4">
+                                        <Button onClick={() => setShowShareCard(true)} variant="outline" className="w-full">
+                                            <Share2 className="w-4 h-4 mr-2" /> Share Result
+                                        </Button>
+                                    </div>
                                 </Card>
 
                                 {/* Suitability Warnings */}
@@ -388,12 +414,36 @@ export default function Home() {
                                     </Card>
                                 )}
 
+                                {/* Alternatives */}
+                                {alternatives.length > 0 && (
+                                    <Card title="Better Alternatives">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {alternatives.map((alt, i) => (
+                                                <div key={i} className="flex items-center space-x-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                                                    <div className="flex-1">
+                                                        <h4 className="font-semibold">{alt.product_name}</h4>
+                                                        <p className="text-sm text-muted-foreground">{alt.brand}</p>
+                                                    </div>
+                                                    <Badge variant="success">{Math.round(alt.toxicity_score * 100)}</Badge>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </Card>
+                                )}
+
                                 {/* Ingredient Breakdown */}
                                 <Card title="Ingredient Analysis">
                                     <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
                                         {result.toxicity_report.map((item, idx) => (
-                                            <div key={idx} className="flex justify-between items-center p-4 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                                                <span className="font-medium">{item.ingredient}</span>
+                                            <div
+                                                key={idx}
+                                                onClick={() => setSelectedIngredient({ name: item.ingredient, risk: item.label })}
+                                                className="flex justify-between items-center p-4 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer group"
+                                            >
+                                                <span className="font-medium group-hover:text-indigo-500 transition-colors flex items-center gap-2">
+                                                    {item.ingredient}
+                                                    <Info size={14} className="opacity-0 group-hover:opacity-100 text-muted-foreground" />
+                                                </span>
                                                 <Badge variant={
                                                     item.label === 'SAFE' ? 'success' :
                                                         item.label === 'LOW RISK' ? 'info' :
@@ -410,6 +460,15 @@ export default function Home() {
                     </div>
                 </div>
             </div>
+
+            <IngredientModal
+                ingredientName={selectedIngredient?.name}
+                riskLevel={selectedIngredient?.risk}
+                onClose={() => setSelectedIngredient(null)}
+            />
+            {showShareCard && result && (
+                <ShareCard product={result} onClose={() => setShowShareCard(false)} />
+            )}
         </div>
     );
 }

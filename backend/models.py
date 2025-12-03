@@ -25,3 +25,7 @@ class FavoriteItem(BaseModel):
     brand: Optional[str] = None
     image_url: Optional[str] = None
     timestamp: datetime = datetime.now()
+
+class IngredientRequest(BaseModel):
+    ingredient_name: str
+    risk_context: Optional[str] = None

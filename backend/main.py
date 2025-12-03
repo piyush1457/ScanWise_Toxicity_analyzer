@@ -51,6 +51,7 @@ class ProductRequest(BaseModel):
     amount_applied: str = "normal"
     ingredients_list: Optional[str] = None # For manual entry
     barcode: Optional[str] = None # For direct lookup
+    category: Optional[str] = None # Product category (e.g. Moisturizer)
 
 @app.get("/search-products")
 def search_products_endpoint(q: str):
@@ -124,6 +125,7 @@ def scan_product(req: ProductRequest):
                 "ingredients": ingredients,
                 "toxicity_score": product_score,
                 "product_status": product_status,
+                "category": req.category,
                 "timestamp": datetime.now(),
                 "source": "user_scan"
             }
@@ -158,7 +160,8 @@ def scan_product(req: ProductRequest):
         "product_status": product_status,
         "detailed_score_breakdown": detailed_score,
         "not_suitable_for_skin_type": bad_skin_type,
-        "not_suitable_for_skin_tone": bad_skin_tone
+        "not_suitable_for_skin_tone": bad_skin_tone,
+        "category": req.category
     }
 
 @app.get("/test-db")
@@ -185,7 +188,8 @@ def test_db():
 # --- NEW ENDPOINTS FOR USER ACCOUNTS ---
 from auth import get_current_user_uid
 from firebase_config import get_db
-from models import UserProfile, ScanHistoryItem, FavoriteItem
+from models import UserProfile, ScanHistoryItem, FavoriteItem, IngredientRequest
+from ai_explainer import explain_ingredient_with_ai, analyze_routine_with_ai
 from datetime import datetime
 
 @app.post("/users/profile")
@@ -279,6 +283,58 @@ def remove_favorite(product_name: str, uid: str = Depends(get_current_user_uid))
         doc.reference.delete()
     return {"status": "success"}
 
+@app.post("/explain-ingredient")
+def explain_ingredient_endpoint(req: IngredientRequest):
+    explanation = explain_ingredient_with_ai(req.ingredient_name, req.risk_context)
+    return explanation
+
+class RecommendationRequest(BaseModel):
+    category: str
+    current_score: float
+
+@app.post("/recommend-alternatives")
+def recommend_alternatives(req: RecommendationRequest):
+    db = get_db()
+    if not db:
+        return []
+    
+    try:
+        # Query for products in same category with lower toxicity score (safer)
+        # Limit to 5 results
+        docs = db.collection("products")\
+            .where("category", "==", req.category)\
+            .where("toxicity_score", "<", req.current_score)\
+            .order_by("toxicity_score", direction=firestore.Query.ASCENDING)\
+            .limit(5)\
+            .stream()
+            
+        results = []
+        for doc in docs:
+            data = doc.to_dict()
+            results.append({
+                "product_name": data.get("product_name"),
+                "brand": data.get("brand"),
+                "toxicity_score": data.get("toxicity_score"),
+                "image_url": data.get("image_url")
+            })
+        return results
+    except Exception as e:
+        print(f"Recommendation error: {e}")
+        return []
+
+class RoutineProduct(BaseModel):
+    name: str
+    ingredients: List[str]
+
+class RoutineRequest(BaseModel):
+    products: List[RoutineProduct]
+
+@app.post("/analyze-routine")
+def analyze_routine_endpoint(req: RoutineRequest):
+    products_data = [{"name": p.name, "ingredients": p.ingredients} for p in req.products]
+    return analyze_routine_with_ai(products_data)
+
+
 # --- AI VISION ENDPOINT ---
 import google.generativeai as genai
 from fastapi import UploadFile, File
@@ -315,6 +371,7 @@ async def analyze_image(files: List[UploadFile] = File(...)):
         {
             "product_name": "The full product name",
             "brand": "The brand name",
+            "category": "Product Category (e.g. Moisturizer, Cleanser, Serum, Sunscreen)",
             "ingredients": ["Ingredient 1", "Ingredient 2", ...]
         }
         Return ONLY the JSON object. Do not include markdown formatting.
@@ -337,7 +394,7 @@ async def analyze_image(files: List[UploadFile] = File(...)):
             return data
         except json.JSONDecodeError:
             # Fallback if JSON parsing fails
-            return {"ingredients": [text_response], "product_name": "", "brand": ""}
+            return {"ingredients": [text_response], "product_name": "", "brand": "", "category": "Unknown"}
     except Exception as e:
         print(f"AI Analysis failed: {e}")
         return {"error": f"Failed to analyze image: {str(e)}"}
