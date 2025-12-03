@@ -12,7 +12,19 @@ dist
 dist-ssr
 *.local
 .env
-backend/serviceAccountKey.json
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+serviceAccountKey.json
+**/serviceAccountKey.json
+secrets.json
+client_secret.json
+
+# Python
+__pycache__/
+*.pyc
 
 # Editor directories and files
 .vscode/*

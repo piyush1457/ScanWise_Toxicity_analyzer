@@ -71,17 +71,12 @@ export default function Routine() {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-8 font-sans pb-24">
+        <div className="font-sans">
             <div className="max-w-4xl mx-auto">
-                <header className="mb-8 flex items-center gap-4">
-                    <Link to="/dashboard" className="p-2 rounded-full hover:bg-muted transition-colors">
-                        <ArrowLeft size={24} />
-                    </Link>
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Routine Checker</h1>
-                        <p className="text-muted-foreground">Check for ingredient conflicts in your routine.</p>
-                    </div>
-                </header>
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Routine Checker</h1>
+                    <p className="text-slate-500 dark:text-slate-400">Check for ingredient conflicts in your routine.</p>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Builder Section */}

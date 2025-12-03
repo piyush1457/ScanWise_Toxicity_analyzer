@@ -49,7 +49,7 @@ const Landing = () => {
 
                 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                     <Link
-                        to="/signup"
+                        to="/login"
                         className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold px-8 py-4 rounded-full text-lg transition-all hover:scale-105 active:scale-95"
                     >
                         Start Scanning Free

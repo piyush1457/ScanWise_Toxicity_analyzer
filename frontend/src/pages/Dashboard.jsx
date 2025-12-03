@@ -46,6 +46,29 @@ export default function Dashboard() {
         }
     }, [result]);
 
+    // Auto-fill profile data
+    useEffect(() => {
+        async function fetchProfile() {
+            if (!currentUser) return;
+            try {
+                const token = await currentUser.getIdToken();
+                const res = await axios.get("http://localhost:8000/users/profile", {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.data) {
+                    setFormData(prev => ({
+                        ...prev,
+                        skin_type: res.data.skin_type || prev.skin_type,
+                        skin_tone: res.data.skin_tone || prev.skin_tone
+                    }));
+                }
+            } catch (err) {
+                console.error("Failed to fetch profile for auto-fill", err);
+            }
+        }
+        fetchProfile();
+    }, [currentUser]);
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -163,13 +186,13 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-8 font-sans pb-24">
+        <div className="min-h-screen bg-transparent text-slate-900 dark:text-slate-100 font-sans">
             <div className="max-w-6xl mx-auto">
-                <header className="mb-12 text-center">
-                    <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">
-                        ScanWise
+                <header className="mb-8">
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                        Dashboard
                     </h1>
-                    <p className="text-muted-foreground text-lg">Advanced Toxicity & Suitability Analyzer</p>
+                    <p className="text-slate-500 dark:text-slate-400">Analyze products and check their safety.</p>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -433,26 +456,42 @@ export default function Dashboard() {
 
                                 {/* Ingredient Breakdown */}
                                 <Card title="Ingredient Analysis">
-                                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-                                        {result.toxicity_report.map((item, idx) => (
-                                            <div
-                                                key={idx}
-                                                onClick={() => setSelectedIngredient({ name: item.ingredient, risk: item.label })}
-                                                className="flex justify-between items-center p-4 bg-muted/30 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer group"
-                                            >
-                                                <span className="font-medium group-hover:text-indigo-500 transition-colors flex items-center gap-2">
-                                                    {item.ingredient}
-                                                    <Info size={14} className="opacity-0 group-hover:opacity-100 text-muted-foreground" />
-                                                </span>
-                                                <Badge variant={
-                                                    item.label === 'SAFE' ? 'success' :
-                                                        item.label === 'LOW RISK' ? 'info' :
-                                                            item.label === 'MODERATE RISK' ? 'warning' : 'danger'
-                                                }>
-                                                    {item.label}
-                                                </Badge>
-                                            </div>
-                                        ))}
+                                    <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
+                                                <tr>
+                                                    <th className="px-4 py-3">Ingredient</th>
+                                                    <th className="px-4 py-3 text-right">Risk Level</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                                {result.toxicity_report.map((item, idx) => (
+                                                    <tr
+                                                        key={idx}
+                                                        onClick={() => setSelectedIngredient({ name: item.ingredient, risk: item.label })}
+                                                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group"
+                                                    >
+                                                        <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                                            <div className={`w-2 h-2 rounded-full ${item.label === 'SAFE' ? 'bg-emerald-500' :
+                                                                item.label === 'LOW RISK' ? 'bg-blue-500' :
+                                                                    item.label === 'MODERATE RISK' ? 'bg-amber-500' : 'bg-red-500'
+                                                                }`} />
+                                                            {item.ingredient}
+                                                            <Info size={14} className="opacity-0 group-hover:opacity-100 text-slate-400 transition-opacity" />
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${item.label === 'SAFE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
+                                                                item.label === 'LOW RISK' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' :
+                                                                    item.label === 'MODERATE RISK' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' :
+                                                                        'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
+                                                                }`}>
+                                                                {item.label}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </Card>
                             </div>

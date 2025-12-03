@@ -7,6 +7,7 @@ class UserProfile(BaseModel):
     email: str
     skin_type: Optional[str] = None
     skin_tone: Optional[str] = None
+    theme_preference: Optional[str] = "light"
     created_at: datetime = datetime.now()
 
 class ScanHistoryItem(BaseModel):

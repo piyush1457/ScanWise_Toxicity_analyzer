@@ -1,14 +1,16 @@
 import React from 'react';
 
-const Card = ({ children, className = '', title }) => {
+const Card = ({ children, title, className = "" }) => {
   return (
-    <div className={`rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-50 shadow-sm ${className}`}>
+    <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden ${className}`}>
       {title && (
-        <div className="flex flex-col space-y-1.5 p-6 pb-2">
-          <h3 className="text-2xl font-semibold leading-none tracking-tight">{title}</h3>
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800/50">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-lg tracking-tight">
+            {title}
+          </h3>
         </div>
       )}
-      <div className="p-6 pt-2">
+      <div className="p-6">
         {children}
       </div>
     </div>
